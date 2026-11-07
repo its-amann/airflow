@@ -1375,6 +1375,10 @@ class DagFileProcessorManager(LoggingMixin):
                     self.log.exception("Error listing Dag definitions in bundle %s", bundle.name)
                     if self.api_client is None:
                         self._record_bundle_refresh_error(bundle.name, traceback.format_exc())
+                        # Listing failed and the version was left unadvanced. Drop the
+                        # cached version so the short circuit below cannot clear this
+                        # error and skip listing on the next refresh.
+                        self._bundle_versions.pop(bundle.name, None)
                     if self.api_client is not None:
                         self._discard_unusable_bundle_source(bundle.name)
                         self._delay_bundle_listing_retry(bundle.name, check_started_at=now_seconds)

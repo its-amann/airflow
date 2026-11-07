@@ -6139,7 +6139,7 @@ class TestDagFileProcessorManager:
         ):
             manager._refresh_dag_bundles({})
             mock_update.assert_not_called()
-            assert manager._bundle_versions["mock_bundle"] == "v1"
+            assert "mock_bundle" not in manager._bundle_versions
 
             known_files: dict[str, set[DagFileInfo]] = {}
             manager._refresh_dag_bundles(known_files)
