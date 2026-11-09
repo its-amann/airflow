@@ -268,6 +268,23 @@ class TestPapermillOperator:
 
         mock_run.assert_not_called()
 
+    @patch("airflow.providers.papermill.operators.papermill.subprocess.run", autospec=True)
+    @patch("airflow.providers.papermill.operators.papermill.pm")
+    def test_execute_skips_nbconvert_for_remote_output(self, mock_papermill, mock_run):
+        from airflow.providers.papermill.operators.papermill import PapermillOperator
+
+        op = PapermillOperator(
+            input_nb="/tmp/in.ipynb",
+            output_nb="s3://bucket/out.ipynb",
+            task_id="test_nbconvert_remote",
+            nbconvert=True,
+        )
+
+        op.execute(context={})
+
+        mock_papermill.execute_notebook.assert_called_once()
+        mock_run.assert_not_called()
+
     @pytest.mark.db_test
     def test_render_template(self, create_task_instance_of_operator):
         """Test rendering fields."""

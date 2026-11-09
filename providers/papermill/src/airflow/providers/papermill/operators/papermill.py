@@ -148,7 +148,9 @@ class PapermillOperator(BaseOperator):
             **remote_kernel_kwargs,
         )
 
-        if self.nbconvert:
+        if self.nbconvert and "://" in self.output_nb.url:
+            self.log.warning("Skipping nbconvert, %s is not a local file", self.output_nb.url)
+        elif self.nbconvert:
             # nbconvert_args is templated, and Jinja renders a templated collection to a string,
             # which would otherwise be spliced into the command one character per argument.
             if self.nbconvert_args is not None and not isinstance(self.nbconvert_args, list):
