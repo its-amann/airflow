@@ -154,6 +154,14 @@ class TestS3ToAzureBlobStorageOperator:
                 PREFIX,
                 True,
             ),
+            (
+                MOCK_FILES,
+                [f"{PREFIX}//{f}" for f in MOCK_FILES[1:]],
+                [MOCK_FILES[0]],
+                PREFIX,
+                f"{PREFIX}/",
+                False,
+            ),
         ],
     )
     def test_get_files_to_move__both_prefix(
