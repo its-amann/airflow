@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 from abc import ABC
 from collections.abc import Callable
 from typing import Any
@@ -132,14 +133,11 @@ class Callback(ABC):
         return self.serialize() == other.serialize()
 
     def __hash__(self):
-        serialized = self.serialize()
-        hashable_items = []
-        for k, v in serialized.items():
-            if isinstance(v, dict):
-                hashable_items.append((k, tuple(sorted(v.items()))))
-            else:
-                hashable_items.append((k, v))
-        return hash(tuple(sorted(hashable_items)))
+        # ``serialize()`` is JSON-serializable by contract (it is persisted to a JSON column),
+        # and ``kwargs`` may legally contain nested dicts/lists (e.g. ``kwargs={"tags": [...]}``).
+        # Hashing a canonical sorted JSON encoding handles arbitrary nesting while remaining
+        # consistent with ``__eq__`` (which compares ``serialize()``).
+        return hash(json.dumps(self.serialize(), sort_keys=True, default=str))
 
 
 class AsyncCallback(Callback):
