@@ -241,6 +241,13 @@ class TestCallback:
                 True,
                 id="sync_dict_key_ordering_identical",
             ),
+            pytest.param(
+                SyncCallback,
+                (TEST_CALLBACK_PATH, {"config": {"timeout": 30}}),
+                (TEST_CALLBACK_PATH, {"config": {"timeout": 30.0}}),
+                True,
+                id="sync_int_and_float_kwargs_equal",
+            ),
         ],
     )
     def test_callback_hash_and_set_behavior(self, callback_class, args1, args2, should_be_same_hash):
