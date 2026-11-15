@@ -1218,6 +1218,12 @@ class TriggerRunnerSupervisor(WatchedSubprocess):
 
                 new_trigger_orm = new_triggers[new_trigger_id]
 
+                # A trigger picked up from another triggerer (or after a restart) carries its failure count on
+                # the row; load it before building, so its backoff also applies to this first attempt here.
+                self.failure_tracker.continue_from(new_trigger_id, new_trigger_orm.consecutive_failures)
+                if not self.failure_tracker.attempt_ready(new_trigger_id, time.monotonic()):
+                    continue
+
                 # If the trigger is not associated to a task, an asset, or a callback, this means the TaskInstance
                 # row was updated by either Trigger.submit_event or Trigger.submit_failure
                 # and can happen when a single trigger Job is being run on multiple TriggerRunners

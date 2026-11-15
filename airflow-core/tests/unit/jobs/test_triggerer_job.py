@@ -4655,6 +4655,27 @@ class TestTriggerFailureBackoff:
             assert 1 not in supervisored.running_triggers
             assert 1 in supervisored.failure_tracker.failures
 
+    def test_trigger_picked_up_with_recorded_failures_waits_for_backoff(self, supervisored, mocker, clock):
+        trigger = mocker.Mock(spec=Trigger, id=7, task_instance=None, consecutive_failures=3)
+        mocker.patch("airflow.jobs.triggerer_job_runner.create_session")
+        mocker.patch("airflow.jobs.triggerer_job_runner.DBDagBag")
+        mocker.patch("airflow.jobs.triggerer_job_runner.prepare_task_log_contexts", return_value={})
+        mocker.patch.object(
+            TriggerRunnerSupervisor, "fetch_trigger_details", autospec=True, return_value={7: trigger}
+        )
+        mocker.patch.object(
+            TriggerRunnerSupervisor, "fetch_non_task_trigger_ids", autospec=True, return_value={7}
+        )
+        create = mocker.patch.object(TriggerRunnerSupervisor, "_create_workload", autospec=True)
+
+        with conf_vars(self.BACKOFF):
+            supervisored.update_triggers({7})
+            create.assert_not_called()
+
+            clock.return_value += 15.0
+            supervisored.update_triggers({7})
+            create.assert_called_once()
+
     def test_watchers_on_a_shared_stream_back_off_together(self, supervisored, mocker, clock):
         mocker.patch.object(Trigger, "submit_failure", autospec=True)
         build = mocker.patch.object(
