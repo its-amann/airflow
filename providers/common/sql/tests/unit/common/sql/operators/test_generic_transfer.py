@@ -1,4 +1,3 @@
-import jinja2
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -24,6 +23,7 @@ from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import MagicMock
 
+import jinja2
 import pytest
 from more_itertools import flatten
 
