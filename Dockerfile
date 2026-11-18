@@ -2268,7 +2268,7 @@ while true; do
     fi
   fi
 
-  find "${DIRECTORY}"/logs -mindepth 1 -type d -empty -delete || true
+  find "${DIRECTORY}"/logs -mindepth 1 -type d -empty ! -name 'lost+found' -delete || true
 
   retention_days="${RETENTION_DAYS}"
 

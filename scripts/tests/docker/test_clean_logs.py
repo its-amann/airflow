@@ -52,3 +52,29 @@ def test_clean_logs_preserves_root_directory(tmp_path, nested_empty_directory):
 
     assert logs.is_dir()
     assert not list(logs.iterdir())
+
+
+def test_clean_logs_keeps_lost_and_found(tmp_path):
+    logs = tmp_path / "logs"
+    (logs / "lost+found").mkdir(parents=True)
+    (logs / "scheduler" / "empty").mkdir(parents=True)
+
+    subprocess.run(
+        ["bash", "-c", 'sleep() { exit 0; }; source "$1"', "bash", str(SCRIPT_PATH)],
+        env={
+            **os.environ,
+            "AIRFLOW_HOME": str(tmp_path),
+            "AIRFLOW__LOG_RETENTION_DAYS": "15",
+            "AIRFLOW__LOG_RETENTION_MINUTES": "0",
+            "AIRFLOW__LOG_CLEANUP_FREQUENCY_MINUTES": "15",
+            "AIRFLOW__LOG_MAX_SIZE_BYTES": "0",
+            "AIRFLOW__LOG_MAX_SIZE_PERCENT": "0",
+        },
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+    assert (logs / "lost+found").is_dir()
+    assert not (logs / "scheduler").exists()
