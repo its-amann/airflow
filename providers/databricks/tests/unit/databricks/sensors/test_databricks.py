@@ -23,7 +23,13 @@ import pytest
 from tenacity import stop_after_attempt, wait_incrementing
 
 from airflow.models.dag import DAG
-from airflow.providers.common.compat.sdk import AirflowException, BaseSensorOperator, TaskDeferred, timezone
+from airflow.providers.common.compat.sdk import (
+    AirflowException,
+    AirflowSensorTimeout,
+    BaseSensorOperator,
+    TaskDeferred,
+    timezone,
+)
 from airflow.providers.databricks.hooks.databricks import SQLStatementState
 from airflow.providers.databricks.sensors.databricks import DatabricksSQLStatementsSensor
 from airflow.providers.databricks.triggers.databricks import DatabricksSQLStatementExecutionTrigger
@@ -225,6 +231,20 @@ class TestDatabricksSQLStatementsSensor:
         op.execute(None)
 
         assert db_mock.get_sql_statement_state.call_count == 2
+
+    @mock.patch("airflow.providers.databricks.sensors.databricks.DatabricksHook")
+    def test_exec_cancels_statement_on_sensor_timeout(self, db_mock_class):
+        op = DatabricksSQLStatementsSensor(
+            task_id=TASK_ID, statement=STATEMENT, warehouse_id=WAREHOUSE_ID, poke_interval=0, timeout=0
+        )
+        db_mock = db_mock_class.return_value
+        db_mock.post_sql_statement.return_value = STATEMENT_ID
+        db_mock.get_sql_statement_state.return_value = SQLStatementState("RUNNING")
+
+        with pytest.raises(AirflowSensorTimeout):
+            op.execute(None)
+
+        db_mock.cancel_sql_statement.assert_called_once_with(STATEMENT_ID)
 
     @mock.patch("airflow.providers.databricks.sensors.databricks.DatabricksHook")
     def test_reschedule_mode_with_statement_is_rejected(self, db_mock_class):
