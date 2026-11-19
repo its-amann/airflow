@@ -1346,6 +1346,21 @@ class TestKubernetesJobOperator:
             [mock.call(expected_delay)] * expected_retries if expected_delay else []
         )
 
+    @patch(JOB_OPERATORS_PATH.format("sleep"))
+    @patch(JOB_OPERATORS_PATH.format("KubernetesJobOperator.log_matching_pod"))
+    @patch(JOB_OPERATORS_PATH.format("KubernetesJobOperator._build_find_pod_label_selector"))
+    @patch(JOB_OPERATORS_PATH.format("KubernetesJobOperator.client"), new_callable=mock.PropertyMock)
+    def test_get_pods_does_not_wait_when_completions_below_parallelism(
+        self, mock_client, mock_build_find_pod_label_selector, mock_log_matching_pod, mock_sleep
+    ):
+        pods = [mock.MagicMock(), mock.MagicMock()]
+        mock_client.return_value.list_namespaced_pod.return_value = k8s.V1PodList(items=pods)
+        op = KubernetesJobOperator(task_id="faketask", parallelism=5, completions=2)
+
+        assert op.get_pods(mock.MagicMock(), mock.MagicMock()) == pods
+        assert mock_client.return_value.list_namespaced_pod.call_count == 1
+        mock_sleep.assert_not_called()
+
     @pytest.mark.non_db_test_override
     @pytest.mark.parametrize("delay", [-1, float("inf"), float("nan")], ids=["negative", "inf", "nan"])
     def test_reject_invalid_discover_pods_retry_delay(self, delay):

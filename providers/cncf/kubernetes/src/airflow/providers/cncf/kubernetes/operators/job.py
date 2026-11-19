@@ -640,8 +640,10 @@ class KubernetesJobOperator(KubernetesPodOperator):
         pod_list: Sequence[k8s.V1Pod] = []
         retry_number: int = 0
 
+        # A Job never runs more pods than it has completions, so don't wait for parallelism pods then.
+        expected_pods = min(self.parallelism, self.completions or self.parallelism)
         while retry_number <= self.discover_pods_retry_number:
-            if len(pod_list) == self.parallelism:
+            if len(pod_list) >= expected_pods:
                 break
             if retry_number and self.discover_pods_retry_delay:
                 sleep(self.discover_pods_retry_delay)
