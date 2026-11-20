@@ -92,6 +92,15 @@ class SnowflakeSqlApiTrigger(BaseTrigger):
                 if statement_status["status"] == "error":
                     yield TriggerEvent(statement_status)
                     return
+                if statement_status["status"] != "success":
+                    yield TriggerEvent(
+                        {
+                            "status": "error",
+                            "message": f"Unexpected Snowflake SQL API status for query {query_id}: "
+                            f"{statement_status['status']!r}",
+                        }
+                    )
+                    return
             yield TriggerEvent(
                 {
                     "status": "success",
