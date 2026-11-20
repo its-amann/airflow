@@ -347,6 +347,38 @@ class TestBundleUsageTrackingManager:
         versions_dir = FakeBundle(version="new", name=bundle_name).versions_dir
         assert [f.name for f in versions_dir.iterdir()] == ["new"]
 
+    @conf_vars(
+        {
+            ("dag_processor", "stale_bundle_cleanup_age_threshold"): "0",
+            ("dag_processor", "stale_bundle_cleanup_min_versions"): "0",
+        }
+    )
+    @patch("airflow.dag_processing.bundles.base.get_bundle_tracking_dir")
+    def test_tracking_file_removed_during_scan_is_skipped(self, mock_get_dir, tmp_path):
+        """A tracking file deleted by a concurrent cleanup pass must not abort this pass."""
+        bundle_tracking_dir = tmp_path / "_tracking"
+        bundle_tracking_dir.mkdir()
+        mock_get_dir.return_value = bundle_tracking_dir
+        bundle_name = "abc"
+        for version in ("gone", "old"):
+            FakeBundle(version=version, name=bundle_name).path.mkdir(parents=True)
+            (bundle_tracking_dir / version).write_text("2020-01-01T00:00:00+00:00")
+        gone = bundle_tracking_dir / "gone"
+        real_iterdir = Path.iterdir
+
+        def iterdir_then_remove(self):
+            files = list(real_iterdir(self))
+            if self == bundle_tracking_dir:
+                gone.unlink()
+            return iter(files)
+
+        with patch.object(Path, "iterdir", iterdir_then_remove):
+            BundleUsageTrackingManager().remove_stale_bundle_versions_for_bundle(bundle_name=bundle_name)
+
+        assert list(real_iterdir(bundle_tracking_dir)) == []
+        versions_dir = FakeBundle(version="old", name=bundle_name).versions_dir
+        assert [f.name for f in real_iterdir(versions_dir)] == ["gone"]
+
 
 class TestBundleVersion:
     def test_bundle_version_with_version_only(self):

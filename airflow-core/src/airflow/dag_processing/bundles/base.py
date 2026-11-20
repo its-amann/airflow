@@ -133,7 +133,11 @@ class BundleUsageTrackingManager:
         for file in tracking_dir.iterdir():
             log.debug("found bundle tracking file, path=%s", file)
             version = file.name
-            dt_str = file.read_text()
+            try:
+                dt_str = file.read_text()
+            except FileNotFoundError:
+                # removed by another cleanup pass after iterdir()
+                continue
             dt = self._parse_dt(val=dt_str)
             if not dt:
                 log.error(
