@@ -568,6 +568,15 @@ class TestLoginRouter:
                 80,
                 id="http-default-port",
             ),
+            pytest.param(
+                "http://airflow.example.com",
+                "http",
+                8000,
+                "off",
+                "airflow.example.com",
+                80,
+                id="http-reverse-proxy",
+            ),
         ],
     )
     def test_prepare_request_scheme_and_port(

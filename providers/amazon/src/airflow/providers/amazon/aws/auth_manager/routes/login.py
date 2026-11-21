@@ -338,13 +338,7 @@ def _prepare_request(request: Request) -> dict:
     parsed = urlparse(conf.get("api", "base_url", fallback="http://localhost"))
     host = parsed.netloc or parsed.hostname or "localhost"
     is_https = parsed.scheme == "https" or _is_secure_request(request)
-    server_port: int | None
-    if parsed.port is not None:
-        server_port = parsed.port
-    elif is_https:
-        server_port = 443
-    else:
-        server_port = request.url.port or 80
+    server_port = parsed.port or (443 if is_https else 80)
 
     data: dict[str, Any] = {
         "https": "on" if is_https else "off",
